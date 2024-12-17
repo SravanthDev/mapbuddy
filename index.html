@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Nearby Fuel Stations & Restaurants</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        header {
+            background-color: #007BFF;
+            color: #fff;
+            padding: 15px;
+            text-align: center;
+            font-size: 24px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        #weather-info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            background-color: #EAF2FF;
+            color: #333;
+            padding: 15px;
+            margin: 10px auto;
+            width: 90%;
+            border-radius: 8px;
+            font-size: 18px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        #map {
+            height: 50vh;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin: 10px auto;
+            width: 90%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .places {
+            margin: 10px auto;
+            background-color: white;
+            padding: 15px;
+            width: 90%;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            margin-top: 15px;
+            color: #007BFF;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            margin: 10px 0;
+            font-size: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .loading {
+            text-align: center;
+            color: #777;
+            font-style: italic;
+        }
+        .weather-icon {
+            width: 50px;
+            height: 50px;
+        }
+    </style>
+</head>
+<body>
+    <header>Find Nearby Fuel Stations & Restaurants</header>
+
+    <div id="weather-info">
+        <img id="weather-icon" class="weather-icon" src="" alt="Weather Icon" />
+        <div id="weather-details">Fetching live weather...</div>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="places">
+        <h2>Nearby Gas Stations</h2>
+        <ul id="gas-stations-list"><li class="loading">Loading gas stations...</li></ul>
+    </div>
+
+    <div class="places">
+        <h2>Nearby Restaurants</h2>
+        <ul id="restaurants-list"><li class="loading">Loading restaurants...</li></ul>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        const weatherApiKey = "323a8b2927aaad2ac79fcc4f029d7200";
+        let userLat, userLon;
+
+        // Attractive Fuel Pump Icon
+        const gasIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/1995/1995491.png', // Modern fuel pump
+            iconSize: [35, 35],
+        });
+        const restaurantIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/1046/1046784.png',
+            iconSize: [30, 30],
+        });
+
+        const map = L.map('map').setView([0, 0], 13);
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return (R * c).toFixed(2);
+        }
+
+        function initMap() {
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        userLat = position.coords.latitude;
+                        userLon = position.coords.longitude;
+                        map.setView([userLat, userLon], 15);
+
+                        L.marker([userLat, userLon]).addTo(map).bindPopup("You are here").openPopup();
+
+                        fetchWeather();
+                        fetchNearbyPlaces("fuel", "gas-stations-list", gasIcon, "Gas Station", () => {
+                            fetchNearbyPlaces("restaurant", "restaurants-list", restaurantIcon, "Restaurant");
+                        });
+                    },
+                    () => alert("Location permission denied."),
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+                );
+            } else {
+                alert("Geolocation is not supported by your browser.");
+            }
+        }
+
+        function fetchWeather() {
+            fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${userLat}&lon=${userLon}&appid=${weatherApiKey}&units=metric`)
+                .then(response => response.json())
+                .then(data => {
+                    const weatherDetails = `
+                        <strong>${data.name}</strong><br>
+                        ${data.weather[0].description}, ${data.main.temp}°C<br>
+                        Humidity: ${data.main.humidity}%
+                    `;
+                    document.getElementById('weather-details').innerHTML = weatherDetails;
+                    document.getElementById('weather-icon').src = `http://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+                })
+                .catch(() => {
+                    document.getElementById('weather-details').innerText = "Weather data unavailable.";
+                });
+        }
+
+        function fetchNearbyPlaces(type, listId, icon, label, callback = null) {
+            const radius = 2000; 
+            const query = `
+                [out:json];
+                node(around:${radius},${userLat},${userLon})["amenity"="${type}"];
+                out body;
+            `;
+
+            fetch("https://overpass-api.de/api/interpreter", {
+                method: "POST",
+                body: query
+            })
+            .then(response => response.json())
+            .then(data => {
+                const list = document.getElementById(listId);
+                list.innerHTML = "";
+                data.elements.forEach(place => {
+                    const name = place.tags.name || "Unnamed Place";
+                    const { lat, lon } = place;
+                    const distance = calculateDistance(userLat, userLon, lat, lon);
+
+                    const listItem = document.createElement("li");
+                    listItem.innerHTML = `
+                        ${name} - ${distance} km
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}" target="_blank">
+                            Get Directions
+                        </a>
+                    `;
+                    list.appendChild(listItem);
+
+                    L.marker([lat, lon], { icon })
+                        .addTo(map)
+                        .bindPopup(`<b>${name}</b><br>${label} (${distance} km)`);
+                });
+
+                if (callback) callback();
+            });
+        }
+
+        initMap();
+    </script>
+</body>
+</html>
