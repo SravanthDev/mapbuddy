@@ -14,12 +14,23 @@
             color: #333;
         }
         header {
-            background-color: #007BFF;
+            background: linear-gradient(135deg, #007BFF, #0056b3);
             color: #fff;
-            padding: 15px;
+            padding: 20px;
             text-align: center;
-            font-size: 24px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        h3 {
+            text-align: center;
+            margin-top: 15px;
+            color: #333;
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
         #weather-info {
             display: flex;
@@ -88,7 +99,7 @@
 </head>
 <body>
     <header>MAP BUDDY</header>
-    <h3>Find Nearby Fuel Stations & Restaurants</h3>
+    <h3 style="text-align: center;">Find Nearby Fuel Stations & Restaurants</h3>
 
     <div id="weather-info">
         <img id="weather-icon" class="weather-icon" src="" alt="Weather Icon" />
@@ -114,7 +125,7 @@
         let userMarker;
 
         const gasIcon = L.icon({
-            iconUrl: 'https://cdn-icons-png.flaticon.com/512/8664/8664993.png', // New gas can icon
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/8664/8664993.png',
             iconSize: [35, 35],
         });
         const restaurantIcon = L.icon({
@@ -225,3 +236,4 @@
     </script>
 </body>
 </html>
+
